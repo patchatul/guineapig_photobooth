@@ -1,26 +1,193 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --pastel-pink:    #ffc8dd;
+  --pastel-green:   #b5ead7;
+  --pastel-yellow:  #fef9c3;
+  --pastel-blue:    #bde0fe;
+  --pastel-lavender:#e0bbff;
+  --pastel-peach:   #ffd6a5;
+
+  /* Frame colors for each of the 4 photo slots */
+  --frame-1: #ffc8dd;   /* pink */
+  --frame-2: #b5ead7;   /* mint */
+  --frame-3: #bde0fe;   /* baby blue */
+  --frame-4: #fef9c3;   /* yellow */
+
+  --shadow-soft: 0 4px 24px rgba(180, 140, 200, 0.18);
+  --shadow-card: 4px 6px 18px rgba(0,0,0,0.10);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+ background: radial-gradient(
+    ellipse at 20% 20%,
+    #ffc8dd 0%,
+    #fef9c3 28%,
+    #b5ead7 52%,
+    #bde0fe 72%,
+    #e0bbff 100%
+  );
+  min-height: 100vh;
+  font-family: var(--font-bonbon), var(--font-roboto), Arial, Helvetica, sans-serif;
+}
+/* ── Shimmer rainbow title ── */
+.shimmer-text {
+  background: linear-gradient(90deg,
+    #e879a0 0%, #60c4a0 25%, #f4c842 50%, #79aee8 75%, #e879a0 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 0%   center; }
+  100% { background-position: 200% center; }
+}
+
+/* ── Flash overlay for shutter effect ── */
+.flash-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  z-index: 9999;
+}
+.flash-overlay.active {
+  animation: flashAnim 0.35s ease-out forwards;
+}
+@keyframes flashAnim {
+  0%   { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* ── Photo slot frame (used in both capture and strip) ── */
+.photo-slot {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.photo-slot:hover { transform: scale(1.02); box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+
+/* ── The 1080×1920 Instagram Story strip frame ── */
+.story-strip {
+  /* Fixed aspect ratio 9:16 matching Instagram story */
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #f8f4ff;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ── Dotted border pattern (like reference image) ── */
+.dotted-border {
+  border: 16px solid transparent;
+  border-image: none;
+  background-clip: padding-box;
+}
+
+/* ── Stickers placed on the canvas ── */
+.sticker-placed {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;          /* prevents scroll during drag on mobile */
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.18));
+  z-index: 20;
+  /* Hardware-accelerated positioning */
+  will-change: transform;
+}
+.sticker-placed:active   { cursor: grabbing; }
+.sticker-placed.selected { outline: 2px dashed #e879a0; border-radius: 4px; }
+
+/* ── Sticker sidebar button ── */
+.sticker-btn {
+  cursor: pointer;
+  font-size: 1.6rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: none;
+}
+.sticker-btn:hover {
+  transform: scale(1.28) rotate(8deg);
+  box-shadow: 3px 3px 12px rgba(0,0,0,0.15);
+}
+
+/* ── Pastel pill button ── */
+.btn-pastel {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.6rem 1.6rem;
+  border: 2px solid rgba(255,255,255,0.6);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: var(--shadow-soft);
+}
+.btn-pastel:hover  { transform: scale(1.05); }
+.btn-pastel:active { transform: scale(0.96); }
+
+/* ── Individual frame accent borders (used on each photo box) ── */
+.frame-pink   { border: 3px solid var(--frame-1); }
+.frame-mint   { border: 3px solid var(--frame-2); }
+.frame-blue   { border: 3px solid var(--frame-3); }
+.frame-yellow { border: 3px solid var(--frame-4); }
+
+/* ── Floating animation for decorative elements ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-7px); }
+}
+.float-anim { animation: float 3.5s ease-in-out infinite; }
+
+/* ── Pop-in animation ── */
+@keyframes popIn {
+  0%   { transform: scale(0.7); opacity: 0; }
+  65%  { transform: scale(1.08); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.pop-in { animation: popIn 0.35s ease-out forwards; }
+
+/* ── Scrollbar cosmetics ── */
+::-webkit-scrollbar       { width: 7px; }
+::-webkit-scrollbar-thumb { background: var(--pastel-pink); border-radius: 4px; }
+
+/* ── Camera video mirror (selfie feel) ── */
+.video-mirror { transform: scaleX(-1); }
+
+/* ── Countdown overlay ── */
+.countdown-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 12px;
+}
+.countdown-number {
+  font-family: 'Bonbon', cursive;
+  font-size: 5rem;
+  color: white;
+  text-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  animation: popIn 0.3s ease-out;
 }
