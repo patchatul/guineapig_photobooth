@@ -22,8 +22,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
- background: radial-gradient(
-    ellipse at 20% 20%,
+ background: linear-gradient(135deg,
     #ffc8dd 0%,
     #fef9c3 28%,
     #b5ead7 52%,
@@ -32,7 +31,17 @@ body {
   );
   min-height: 100vh;
   font-family: var(--font-bonbon), var(--font-roboto), Arial, Helvetica, sans-serif;
-}
+
+/* Animated pastel gradient background */
+    background-size: 400% 400%;
+      animation: bgShift 12s ease infinite;
+      min-height: 100vh;
+    }
+    @keyframes bgShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
 /* ── Shimmer rainbow title ── */
 .shimmer-text {
   background: linear-gradient(90deg,
@@ -52,7 +61,6 @@ body {
 .photo-slot {
   position: relative;
   background: #fff;
-  border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -68,13 +76,11 @@ body {
   width: 100%;
   aspect-ratio: 9 / 16;
   position: relative;
-  border-radius: 20px;
   overflow: hidden;
   background: #f8f4ff;
   box-shadow: var(--shadow-soft);
 }
 
-/* ── Dotted border pattern (like reference image) ── */
 .dotted-border {
   border: 16px solid transparent;
   border-image: none;
@@ -120,7 +126,7 @@ body {
 /* ── Pastel pill button ── */
 .btn-pastel {
   font-weight: 500;
-  padding: 0.6rem 1.6rem;
+  padding: 0.6rem;
   border: 2px solid rgba(255,255,255,0.6);
   border-radius: 50px;
   cursor: pointer;

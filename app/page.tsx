@@ -1,8 +1,10 @@
 "use client";
 import { useState, useCallback } from "react";
-import PhotoSlot from "./page/camera";
+import { useRouter } from "next/navigation";
+import PhotoSlot from "./camera/photoslot";
 
 export default function Main() {
+  const router = useRouter();
   const [photos, setPhotos] = useState<(string | undefined)[]>([
     undefined,
     undefined,
@@ -16,20 +18,25 @@ export default function Main() {
       return newPhotos;
     });
   }, []);
-  const filledCount = photos.filter(Boolean).length;
+   const  decorate = () => {
+    // Store photos in sessionStorage so the /decorate route can read them
+    sessionStorage.setItem('wb_photos', JSON.stringify(photos))
+    router.push('/decorate')
+  }
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-10">
         <div>
-          <h1 className="text-5xl font-bold" style={{ color: "#c4497a" }}>
-            GuineaPig Photobooth
+          <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
+            Guinea Pig Photobooth
           </h1>
         </div>
         <div
-          className="grid grid-cols-2 gap-3 w-full"
-          style={{ maxWidth: "400px" }}
+          className="grid grid-cols-1"
+          style={{ width: "160px" }}
         >
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2].map((i) => (
             <PhotoSlot
               key={i}
               index={i}
@@ -39,11 +46,11 @@ export default function Main() {
           ))}
         </div>
         <button
-          className="btn-pastel float-anim text-xl px-10 py-4"
+        onClick={decorate}
+          className="btn-pastel float-anim text-xl px-10 py-4 text-pink-500"
           style={{
             background:
               "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
-            color: "#c4497a",
             fontWeight: "bold",
           }}
         >

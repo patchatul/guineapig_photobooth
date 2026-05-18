@@ -162,15 +162,15 @@ export default function PhotoSlot({index, image, onCapture}: Readonly<{
 
           <button
             onClick={openCamera}
-            className="btn-pastel text-sm w-full max-w-35"
+            className="cursor-pointer text-sm w-24 h-8  rounded-full flex items-center justify-center"
             style={{ background: frameColor }}
           >
             📷 Camera
           </button>
 
           <label
-            className="btn-pastel text-sm w-full max-w-35 text-center cursor-pointer"
-            style={{ background: 'white' }}
+            className="cursor-pointer text-sm w-24 h-8  rounded-full flex items-center justify-center"
+            style={{ background: `${frameColor}80` }}
           >
             🖼 Upload
             <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
