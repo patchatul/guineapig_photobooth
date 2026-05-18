@@ -48,23 +48,6 @@ body {
   100% { background-position: 200% center; }
 }
 
-/* ── Flash overlay for shutter effect ── */
-.flash-overlay {
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  background: white;
-  opacity: 0;
-  z-index: 9999;
-}
-.flash-overlay.active {
-  animation: flashAnim 0.35s ease-out forwards;
-}
-@keyframes flashAnim {
-  0%   { opacity: 0.95; }
-  100% { opacity: 0; }
-}
-
 /* ── Photo slot frame (used in both capture and strip) ── */
 .photo-slot {
   position: relative;
@@ -74,7 +57,10 @@ body {
   box-shadow: var(--shadow-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.photo-slot:hover { transform: scale(1.02); box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+.photo-slot:hover { 
+  transform: scale(1.02); 
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15); 
+}
 
 /* ── The 1080×1920 Instagram Story strip frame ── */
 .story-strip {
@@ -133,11 +119,10 @@ body {
 
 /* ── Pastel pill button ── */
 .btn-pastel {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  border-radius: 9999px;
+  font-weight: 500;
   padding: 0.6rem 1.6rem;
   border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 50px;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   box-shadow: var(--shadow-soft);
@@ -146,10 +131,10 @@ body {
 .btn-pastel:active { transform: scale(0.96); }
 
 /* ── Individual frame accent borders (used on each photo box) ── */
-.frame-pink   { border: 3px solid var(--frame-1); }
-.frame-mint   { border: 3px solid var(--frame-2); }
-.frame-blue   { border: 3px solid var(--frame-3); }
-.frame-yellow { border: 3px solid var(--frame-4); }
+.frame-pink   { border: 5px solid var(--frame-1); }
+.frame-mint   { border: 5px solid var(--frame-2); }
+.frame-blue   { border: 5px solid var(--frame-3); }
+.frame-yellow { border: 5px solid var(--frame-4); }
 
 /* ── Floating animation for decorative elements ── */
 @keyframes float {
@@ -185,9 +170,8 @@ body {
   border-radius: 12px;
 }
 .countdown-number {
-  font-family: 'Bonbon', cursive;
-  font-size: 5rem;
   color: white;
+  font-size: 4rem;
   text-shadow: 0 4px 16px rgba(0,0,0,0.4);
   animation: popIn 0.3s ease-out;
 }

@@ -11,7 +11,7 @@ export default function PhotoSlot({index, image, onCapture}: Readonly<{
   onCapture: (index: number, dataUrl: string) => void;
 }>) {
   //frame picture
-  const frameColor = ["#FFB6C1", "#87CEFA", "#90EE90", "#FFD700"][index % 4];
+  const frameColor = ["#ffc8dd", "#b5ead7", "#bde0fe", "#fef9c3"][index % 4];
   const [model, setModel] = useState<"idle" | "capturing" | "processing">("idle");
   
   //use camera
@@ -91,21 +91,95 @@ export default function PhotoSlot({index, image, onCapture}: Readonly<{
   }, [index, onCapture])
 
   return (
-    <div className="relative w-full" style={{paddingTop: "75%"}}>
-      <div className="absolute inset-0 border-8 rounded-lg" style={{borderColor: frameColor}}>
-        {image ? (
-          <Image src={image} alt={`Captured photo ${index + 1}`} layout="fill" objectFit="cover" className="rounded-lg" />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-2"> 
+    <div
+      className="photo-slot"
+      style={{
+        border: `5px solid ${frameColor}`,
+        // Each slot fills its grid cell, with a minimum square size
+        width: '100%', aspectRatio: '1 / 1',
+      }}
+    >
+      {/* ── CAPTURED: show the photo ── */}
+      {image && (
+        <div className="relative w-full h-full group">
+          <img src={image} alt={`Slot ${index + 1}`} className="w-full h-full object-cover" />
+          {/* Retake overlay */}
+          <button
+            onClick={() => { onCapture(index, ''); setModel('idle') }}
+            className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all
+                       flex items-center justify-center opacity-0 group-hover:opacity-100"
+            style={{ borderRadius: '10px' }}
+            title="Retake"
+          >
+            <span className=" text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+              🔄 Retake
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* ── CAMERA MODE: live preview ── */}
+      {!image && model === 'capturing' && (
+        <div className="relative w-full h-full bg-black flex items-center justify-center">
+          <video ref={videoRef} autoPlay playsInline muted className="video-mirror w-full h-full object-cover" />
+
+          {/* Countdown overlay */}
+          {countdown !== null && (
+            <div className="countdown-overlay">
+              <span className="countdown-number">{countdown}</span>
+            </div>
+          )}
+
+          {/* Camera controls */}
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center z-20">
             <button
-              onClick={openCamera}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Capture Photo
-            </button>
+              onClick={capturePhoto}
+              disabled={countdown !== null}
+              className="hover:cursor-pointer text-sm w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: frameColor }}
+            >📸</button>
+            <button
+              onClick={startCountdown}
+              disabled={countdown !== null}
+              className="hover:cursor-pointer text-md w-8 h-8  rounded-full flex items-center justify-center bg-white"
+            >⏱</button>
+            <button
+              onClick={closeCamera}
+                className="hover:cursor-pointer text-sm w-8 h-8  rounded-full flex items-center justify-center bg-white text-gray-500"
+              >✕</button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* ── IDLE: action buttons ── */}
+      {!image && model === 'idle' && (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3"
+             style={{ background: `${frameColor}22` }}>
+          {/* Slot number badge */}
+          <div className="text-2xl font-bold" style={{ color: "#c4497a", }}>
+            {index + 1}
+          </div>
+
+          <button
+            onClick={openCamera}
+            className="btn-pastel text-sm w-full max-w-35"
+            style={{ background: frameColor }}
+          >
+            📷 Camera
+          </button>
+
+          <label
+            className="btn-pastel text-sm w-full max-w-35 text-center cursor-pointer"
+            style={{ background: 'white' }}
+          >
+            🖼 Upload
+            <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+          </label>
+        </div>
+      )}
+
+      {/* Hidden canvas for frame capture */}
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }

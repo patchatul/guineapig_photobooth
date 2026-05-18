@@ -1,11 +1,16 @@
-'use client';
+"use client";
 import { useState, useCallback } from "react";
 import PhotoSlot from "./page/camera";
 
 export default function Main() {
-  const [photos, setPhotos] = useState<(string | undefined)[]>([undefined, undefined, undefined, undefined]);
+  const [photos, setPhotos] = useState<(string | undefined)[]>([
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+  ]);
   const handleCapture = useCallback((index: number, dataUrl: string) => {
-    setPhotos(prev => {
+    setPhotos((prev) => {
       const newPhotos = [...prev];
       newPhotos[index] = dataUrl;
       return newPhotos;
@@ -14,13 +19,14 @@ export default function Main() {
   const filledCount = photos.filter(Boolean).length;
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16">
-        <h1 className="text-4xl md:text-6xl shimmer-text mb-1 text-center drop-shadow">
-          Guinea Pig Photobooth
-        </h1>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-10">
+        <div>
+          <h1 className="text-5xl font-bold" style={{ color: "#c4497a" }}>
+            GuineaPig Photobooth
+          </h1>
+        </div>
         <div
-          className="flex flex-col items-center gap-4"
+          className="grid grid-cols-2 gap-3 w-full"
           style={{ maxWidth: "400px" }}
         >
           {[0, 1, 2, 3].map((i) => (
@@ -32,18 +38,17 @@ export default function Main() {
             />
           ))}
         </div>
-        {filledCount > 0 && (
         <button
-          className="btn-pastel float-anim mt-8 font-bonbon text-xl px-10 py-4"
+          className="btn-pastel float-anim text-xl px-10 py-4"
           style={{
-            background: 'linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)',
-            color: '#c4497a',
+            background:
+              "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
+            color: "#c4497a",
+            fontWeight: "bold",
           }}
         >
           Next
         </button>
-      )}
-      </main>
-    </div>
+      </div>
   );
 }
