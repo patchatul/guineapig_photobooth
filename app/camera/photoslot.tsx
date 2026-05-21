@@ -55,7 +55,7 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
     canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
+    
     triggerFlash();
     const dataUrl = canvas.toDataURL("image/png");
     onCapture(index, dataUrl);
@@ -134,7 +134,7 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            className="video-mirror w-full h-full object-cover"
           />
 
           {/* Countdown overlay */}
