@@ -38,23 +38,23 @@ export default function Main() {
   };
 
   return (
-    <div className="h-screen w-full overflow-hidden flex flex-col items-center justify-between px-4 py-6">
-     <div className="mb-2 text-center">
-          <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
-            Guinea Pig Photobooth
-          </h1>
-        </div>
+    <div className="min-h-screen w-full flex flex-col items-center px-4 py-6">
+      <div className="mb-4 text-center">
+        <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
+          Guinea Pig Photobooth
+        </h1>
+      </div>
 
-      <div
-        style={{
-          position: "relative",
-          height:    "calc(100vh - 140px)",
-          maxHeight: "calc(100vh - 140px)",
-          width: "auto",
-          maxWidth: "100%", 
-          aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
-        }}
-      >
+      <div className="flex-1 w-full max-w-120 flex items-center justify-center">
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: "100%",
+            aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
+            minHeight: 0,
+          }}
+        >
       
 
         {TEMPLATE_BOXES.map((box, i) => (
@@ -90,9 +90,10 @@ export default function Main() {
             pointerEvents: "none",
           }}
         />
-      
+        
+        </div>
       </div>
-     <div className="mt-2">
+      <div className="mt-4 w-full max-w-120 relative z-10 flex justify-center">
         <button
           onClick={decorate}
           className="btn-pastel float-anim text-lg px-8 py-3 text-pink-500"
