@@ -1,10 +1,11 @@
-My fun summer project: Guinea Pig Photobooth
-Take pictures real-time or upload pictures, then decorate with stickers!
-Link to website: 
-Tools: Next.js, TailwindCSS, ibisPaint X, HTMLVideoElement
+My fun summer project: Guinea Pig Photobooth <br/>
+Take real-time pictures or upload pictures, then decorate with stickers!<br/>
+Link to website: https://guineapig-photobooth.vercel.app/ <br/>
+Tools: Next.js, TypeScript, TailwindCSS, ibisPaint X, HTMLVideoElement<br/>
 
 ![alt text](<Screenshot 2026-05-21 022026.png>)
-T```
+```
+
 └── 📁photobooth
     └── 📁guineapig_photobooth
         └── 📁app
