@@ -14,11 +14,10 @@ const TEMPLATE_H = 3840;
  * Measured by pixel-scanning the actual template file.
  */
 const TEMPLATE_BOXES = [
-  { x: 364, y: 381, w: 1434, h: 875 }, // Box 1 – top
-  { x: 363, y: 1452, w: 1433, h: 871 }, // Box 2 – middle
-  { x: 365, y: 2528, w: 1433, h: 869 }, // Box 3 – bottom
+  { x: 340, y: 370, w: 1500, h: 895 }, // Box 1 – top
+  { x: 340, y: 1450, w: 1500, h: 880 }, // Box 2 – middle
+  { x: 340, y: 2525, w: 1500, h: 880 }, // Box 3 – bottom
 ];
-
 //put emojis as stickers for now
 const STICKER_GROUPS = [
   {
@@ -107,34 +106,41 @@ function StripCanvas({
   onRemove,
   containerRef,
 }: StripProps) {
+  const localRef = useRef<HTMLDivElement | null>(null);
+  const refToUse = (containerRef as React.RefObject<HTMLDivElement | null>) ?? localRef;
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = refToUse && 'current' in refToUse ? refToUse.current : null;
+    if (!el) return;
+    const update = () => setContainerWidth(el.getBoundingClientRect().width || 0);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [refToUse]);
+
+  const fontPx = Math.max(18, Math.round(containerWidth * 0.06));
+
   return (
     <div
-      ref={containerRef as React.RefObject<HTMLDivElement>}
+      ref={refToUse as React.RefObject<HTMLDivElement>}
       style={{
         position: "relative",
         width: "100%",
+        height: "100%",
         aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
         userSelect: "none",
         overflow: "hidden",
         borderRadius: "8px",
       }}
     >
-      {/* Template image as background */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={TEMPLATE}
-        alt="strip template"
-        draggable={false}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          display: "block",
-        }}
-      />
-
-      {/* Photo boxes */}
+     
+      {/* Photo boxes behind the template */}
       {TEMPLATE_BOXES.map((box, i) => (
         <div
           key={i}
@@ -146,39 +152,28 @@ function StripCanvas({
             height: `${(box.h / TEMPLATE_H) * 100}%`,
             overflow: "hidden",
             borderRadius: "4px",
+            zIndex: 0,
           }}
         >
           {photos[i] ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={photos[i]!}
               alt=""
               draggable={false}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center",
-                display: "block",
-              }}
+              className="w-full h-full object-cover object-center block"
             />
           ) : (
             <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(255,255,255,0.4)",
-                color: "#aaa",
-              }}
+            className="w-full h-full flex items-center justify-center bg-blue-200 text-pink-500 font-bold"
             >
               {i + 1}
             </div>
           )}
         </div>
       ))}
+      {/*Photo Template */}
+      <img src={TEMPLATE} alt="" draggable={false}
+      className="absolute inset-0 w-full h-full block z-10 pointer-events-none" />
 
       {/* Stickers */}
       {stickers.map((s) => (
@@ -189,9 +184,14 @@ function StripCanvas({
             left: `${s.xPct}%`,
             top: `${s.yPct}%`,
             transform: "translate(-50%, -50%)",
+            fontSize:  `${fontPx}px`,
+            lineHeight: '1',
             zIndex: 20,
             pointerEvents: interactive ? "auto" : "none",
             cursor: interactive ? "grab" : "default",
+            userSelect:       "none",
+            // Prevent browser from treating emoji drag as text selection
+            WebkitUserSelect: "none",
           }}
           onMouseDown={
             interactive && onPointerDown
@@ -206,9 +206,6 @@ function StripCanvas({
           onDoubleClick={
             interactive && onRemove ? () => onRemove(s.id) : undefined
           }
-          title={
-            interactive ? "Drag to move · Double-click to remove" : undefined
-          }
         >
           {s.emoji}
         </span>
@@ -216,6 +213,7 @@ function StripCanvas({
     </div>
   );
 }
+{/* Main Photo Template Decorate Page*/}
 export default function DecoratePage() {
   const router = useRouter();
   // Ref to the preview div – used to map pointer events → % coordinates
@@ -233,18 +231,12 @@ export default function DecoratePage() {
       }
     } catch {}
   }, []);
-
-  // ── Sticker state ─────────────────────────────────────────────────────────
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const nextId = useRef(0);
 
-  // ── UI state ──────────────────────────────────────────────────────────────
   const [saving, setSaving] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Add a sticker near the strip centre
-  // ─────────────────────────────────────────────────────────────────────────
+  const [previewOpen, setPreviewOpen] = useState(false);
+  // Add a sticker near the strip center with a random offset
   const addSticker = useCallback((emoji: string) => {
     nextId.current++;
     setStickers((prev) => [
@@ -263,17 +255,15 @@ export default function DecoratePage() {
     [],
   );
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Drag stickers – mouse + touch, stores result as % of preview container
-  // so positions are resolution-independent and survive the canvas export.
-  // ─────────────────────────────────────────────────────────────────────────
+  {/* Drag stickers – mouse + touch, stores result as % of preview container
+ so positions are resolution-independent and survive the canvas export.*/ }
   const onStickerPointerDown = useCallback(
     (e: React.MouseEvent | React.TouchEvent, id: number) => {
       e.preventDefault();
       e.stopPropagation();
-      const el = previewRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
+      const container = previewRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
 
       const getXY = (ev: MouseEvent | TouchEvent): [number, number] =>
         "touches" in ev
@@ -288,14 +278,8 @@ export default function DecoratePage() {
               ? s
               : {
                   ...s,
-                  xPct: Math.max(
-                    0,
-                    Math.min(97, ((cx - rect.left) / rect.width) * 100),
-                  ),
-                  yPct: Math.max(
-                    0,
-                    Math.min(97, ((cy - rect.top) / rect.height) * 100),
-                  ),
+                  xPct: Math.max(0,Math.min(97, ((cx - rect.left) / rect.width) * 100),),
+                  yPct: Math.max(0,Math.min(97, ((cy - rect.top) / rect.height) * 100),),
                 },
           ),
         );
@@ -330,11 +314,7 @@ export default function DecoratePage() {
       canvas.height = TEMPLATE_H;
       const ctx = canvas.getContext("2d")!;
 
-      // 1. Template background
-      const tmpl = await loadImage(TEMPLATE);
-      ctx.drawImage(tmpl, 0, 0, TEMPLATE_W, TEMPLATE_H);
-
-      // 2. User photos cover-cropped into each box
+      // 1. User photos cover-cropped into each box
       for (let i = 0; i < TEMPLATE_BOXES.length; i++) {
         if (!photos[i]) continue;
         const img = await loadImage(photos[i]!);
@@ -348,9 +328,13 @@ export default function DecoratePage() {
         ctx.restore();
       }
 
+      // 2. Template overlay
+      const tmpl = await loadImage(TEMPLATE);
+      ctx.drawImage(tmpl, 0, 0, TEMPLATE_W, TEMPLATE_H);
+
       // 3. Sticker emojis at native scale
-      const fontSize = Math.round(TEMPLATE_W * 0.06); // ~6% of template width
-      ctx.font = `${fontSize}px serif`;
+      const stickerPics = Math.round(TEMPLATE_W * 0.06); // ~6% of template width
+      ctx.font = `${stickerPics}px serif`;
       ctx.textBaseline = "middle";
       ctx.textAlign = "center";
       for (const s of stickers) {
@@ -374,7 +358,7 @@ export default function DecoratePage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-5 pt-5">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center gap-5 pt-5">
       <div>
           <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
             Guinea Pig Photobooth
@@ -383,7 +367,7 @@ export default function DecoratePage() {
       {/* Action buttons */}
       <div className="flex gap-3 mb-6 flex-wrap justify-center">
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => setPreviewOpen(true)}
           className="btn-pastel "
           style={{ background: "#bde0fe", color: "#1a4a7a" }}
         >
@@ -407,9 +391,9 @@ export default function DecoratePage() {
       </div>
 
       {/* Two-column layout: stickers sidebar and interactive strip */}
-      <div className="flex flex-row gap-5 w-full max-w-4xl items-start justify-center">
+      <div className="flex flex-row gap-5 w-full min-h-0 items-start justify-center">
         {/* Sticker sidebar */}
-        <aside className="w-50 rounded-3xl p-4 shrink-0 flex flex-col justify-center gap-4 bg-white/50">
+        <div className="w-56 xl:w-auto shrink-0 h-full rounded-2xl p-2 flex flex-col gap-2 bg-white/60 overflow-y-auto">
           <h2 className="text-xl text-center text-pink-500">Stickers 🌟</h2>
           <p className=" text-pink-500 text-sm text-center">
             Tap to place
@@ -425,7 +409,7 @@ export default function DecoratePage() {
                   <button
                     key={emoji}
                     className="sticker-btn"
-                    title={`Add ${emoji}`}
+                    title={`add ${emoji}`}
                     onClick={() => addSticker(emoji)}
                   >
                     {emoji}
@@ -435,11 +419,11 @@ export default function DecoratePage() {
             </div>
           ))}
           <p className=" text-xl text-gray-400 text-center mt-1">Made by Pat</p>
-        </aside>
+        </div>
 
         {/* Interactive strip (main editing view) */}
-        <div className="flex-1 flex justify-center">
-          <div style={{ width: "100%", maxWidth: "420px" }}>
+        <div className="flex-1 flex justify-center h-full shrink-0"
+        style={{ maxWidth: "420px", aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}` }}>
             <StripCanvas
               photos={photos}
               stickers={stickers}
@@ -448,116 +432,43 @@ export default function DecoratePage() {
               onRemove={removeSticker}
               containerRef={previewRef}
             />
-          </div>
         </div>
       </div>
 
-      {/* Draggable stickers */}
-      {stickers.map((s) => (
-        <span
-          key={s.id}
-          className="sticker-placed"
-          style={{
-            left: `${s.xPct}%`,
-            top: `${s.yPct}%`,
-            fontSize: "clamp(20px, 5vw, 36px)",
-            transform: "translate(-50%,-50%)",
-            zIndex: 20,
-          }}
-          onMouseDown={(e) => onStickerPointerDown(e, s.id)}
-          onTouchStart={(e) => onStickerPointerDown(e, s.id)}
-          onDoubleClick={() => removeSticker(s.id)}
-          title="Double-click to remove"
-        >
-          {s.emoji}
-        </span>
-      ))}
-
-      {/* ════ MODAL POPUP ════
+      {/* ════ preview POPUP ════
           Full-screen overlay showing the strip enlarged.
           Stickers are non-interactive (read-only preview).
           Download button triggers the canvas export.
       ════════════════════ */}
-      {modalOpen && (
+      {previewOpen && (
         <div
-          onClick={() => setModalOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            background: "rgba(0,0,0,0.60)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-          }}
+          onClick={() => setPreviewOpen(false)}
+          className="fixed inset-0 z-1000 bg-black/50 flex items-center justify-center p-10"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "white",
-              borderRadius: "24px",
-              padding: "20px",
-              maxWidth: "360px",
-              width: "100%",
-              boxShadow: "0 12px 60px rgba(0,0,0,0.3)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "16px",
-            }}
+            className="bg-white rounded-xl p-5 flex flex-col items-center gap-5"
           >
-            {/* Read-only strip in modal */}
-            <StripCanvas
-              photos={photos}
-              stickers={stickers}
-              interactive={false}
-            />
-
-            {/* Read-only stickers */}
-            {stickers.map((s) => (
-              <span
-                key={s.id}
-                style={{
-                  position: "absolute",
-                  left: `${s.xPct}%`,
-                  top: `${s.yPct}%`,
-                  transform: "translate(-50%,-50%)",
-                  pointerEvents: "none",
-                  zIndex: 20,
-                }}
-              >
-                {s.emoji}
-              </span>
-            ))}
-          </div>
-
-          {/* Modal buttons */}
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-              justifyContent: "center",
-            }}
-          >
-            <button
-              onClick={() => {
-                setModalOpen(false);
-                handleSave();
-              }}
-              className="btn-pastel"
-              style={{ background: "#b5ead7", color: "#1a4a2a" }}
-            >
-              {saving ? "⏳ Saving…" : "💾 Download"}
-            </button>
-            <button
-              onClick={() => setModalOpen(false)}
-              className="btn-pastel"
-              style={{ background: "#ffc8dd", color: "#7a1a3a" }}
-            >
-              ✕ Close
-            </button>
+            {/* Strip fills all available space above the buttons */}
+            <div className="flex-1 w-full h-full overflow-hidden">
+              {/* CHANGE: read-only StripCanvas – stickers rendered inside at
+               identical xPct/yPct so preview matches the editing view 1:1*/}
+              <StripCanvas
+                photos={photos}
+                stickers={stickers}
+                interactive={false}
+              />
+            </div>
+            <div className="mt-1 shrink-0 gap-6 flex flex-wrap justify-center" >
+              <button onClick={() => { setPreviewOpen(false); handleSave(); }}
+                className="btn-pastel" style={{ background: "#b5ead7", color: "#1a4a2a" }}>
+                {saving ? "⏳ Saving…" : "💾 Download"}
+              </button>
+              <button onClick={() => setPreviewOpen(false)}
+                className="btn-pastel" style={{ background: "#ffc8dd", color: "#7a1a3a" }}>
+                ✕ Close
+              </button>
+            </div>
           </div>
         </div>
       )}

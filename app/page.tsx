@@ -11,9 +11,9 @@ const TEMPLATE_W = 2160;
 const TEMPLATE_H = 3840;
 
 const TEMPLATE_BOXES = [
-  { x: 364, y: 381, w: 1434, h: 875 }, // Box 1 – top
-  { x: 363, y: 1452, w: 1433, h: 871 }, // Box 2 – middle
-  { x: 365, y: 2528, w: 1433, h: 869 }, // Box 3 – bottom
+  { x: 340, y: 370, w: 1500, h: 895 }, // Box 1 – top
+  { x: 340, y: 1450, w: 1500, h: 880 }, // Box 2 – middle
+  { x: 340, y: 2525, w: 1500, h: 880 }, // Box 3 – bottom
 ];
 export default function Main() {
   const router = useRouter();
@@ -38,8 +38,8 @@ export default function Main() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center gap-10 px-4 py-12">
-     <div>
+    <div className="h-screen w-full overflow-hidden flex flex-col items-center justify-between px-4 py-6">
+     <div className="mb-2 text-center">
           <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
             Guinea Pig Photobooth
           </h1>
@@ -48,52 +48,62 @@ export default function Main() {
       <div
         style={{
           position: "relative",
-          width: "100%",
-          maxWidth: "480px", // fits comfortably on mobile and desktop
+          height:    "calc(100vh - 140px)",
+          maxHeight: "calc(100vh - 140px)",
+          width: "auto",
+          maxWidth: "100%", 
           aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
         }}
       >
-        <img
-          src={TEMPLATE_SRC}
-          alt=""
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            display: "block",
-          }}
-          draggable={false}
-        />
+      
 
         {TEMPLATE_BOXES.map((box, i) => (
           <div
             key={i}
             style={{
               position: "absolute",
-              left: `${(box.x / TEMPLATE_W) * 100}%`,
-              top: `${(box.y / TEMPLATE_H) * 100}%`,
-              width: `${(box.w / TEMPLATE_W) * 100}%`,
+              left:   `${(box.x / TEMPLATE_W) * 100}%`,
+              top:    `${(box.y / TEMPLATE_H) * 100}%`,
+              width:  `${(box.w / TEMPLATE_W) * 100}%`,
               height: `${(box.h / TEMPLATE_H) * 100}%`,
-              overflow: "hidden",
-              borderRadius: "4px",
+              overflow:     "hidden",
+              /* z-index 0: sits below the template overlay (z-index 1) */
+              zIndex: 0,
             }}
           >
             <PhotoSlot index={i} image={photos[i]} onCapture={handleCapture} />
           </div>
         ))}
+        <img
+          src={TEMPLATE_SRC}
+          alt=""
+          draggable={false}
+          style={{
+            position:      "absolute",
+            inset:         0,
+            width:         "100%",
+            height:        "100%",
+            display:       "block",
+            /* Sit on top of photos so the frame/decorations overlay them */
+            zIndex:        1,
+            /* Allow mouse/touch events to fall through to photo slots below */
+            pointerEvents: "none",
+          }}
+        />
+      
       </div>
-      <button
-        onClick={decorate}
-        className="btn-pastel float-anim text-xl px-10 py-4 text-pink-500"
-        style={{
-          background:
-            "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
-          fontWeight: "bold",
-        }}
-      >
-        Next
-      </button>
+     <div className="mt-2">
+        <button
+          onClick={decorate}
+          className="btn-pastel float-anim text-lg px-8 py-3 text-pink-500"
+          style={{
+            background: "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
+            fontWeight: "bold",
+          }}
+        >
+          Next →
+        </button>
+      </div>
     </div>
   );
 }

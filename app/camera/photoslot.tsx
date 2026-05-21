@@ -48,16 +48,14 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
     setMode("idle");
   }, []);
   //capture photo from video stream to canvas, convert to data URL and pass to parent
-  const capturePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const capturePhoto = useCallback( () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    if (!video || !canvas) return;
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext("2d");
-    //draw current video frame to canvas
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
     triggerFlash();
     const dataUrl = canvas.toDataURL("image/png");
     onCapture(index, dataUrl);
@@ -96,57 +94,47 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
       reader.readAsDataURL(file);
       // Reset input so same file can be re-selected
       e.target.value = "";
-    },
-    [index, onCapture],
+    },[index, onCapture],
   );
-
+  const cameraOption = [{
+  label: "📸",
+  action: capturePhoto,
+  disabled: (countdown: number | null) => countdown !== null,
+  style: "hover:cursor-pointer text-sm w-8 h-8 rounded-full flex items-center justify-center bg-white",
+},
+{
+  label: "⏱",
+  action:startCountdown,
+  disabled: (countdown: number | null) => countdown !== null,
+  style: "hover:cursor-pointer text-md w-8 h-8  rounded-full flex items-center justify-center bg-white",
+},
+{
+  label: "✕",
+  action: closeCamera,
+  disabled: () => false,
+  style: "hover:cursor-pointer text-sm w-8 h-8  rounded-full flex items-center justify-center bg-white text-gray-500",
+}]
   return (
-    <div
-      style={{ position: "absolute", inset: 0 }}
-      className="bg-whiterounded-lg overflow-hidden"
-    >
+    <div className="absolute inset-0 overflow-hidden">
       {/* ── CAPTURED: show the photo ── */}
       {image && (
-        <div style={{ position: "absolute", inset: 0 }}>
           <img
             src={image}
-            alt={`Slot ${index + 1}`}
+            alt={`Photo ${index + 1}`}
             draggable={false}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center",
-              display: "block",
-            }}
+            className="absolute inset-0 z-0 block object-cover object-center w-full h-full"
           />
-          {/* Retake overlay */}
-          <button
-            onClick={() => {
-              onCapture(index, "");
-              setMode("idle");
-            }}
-            className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all
-                       flex items-center justify-center opacity-0 group-hover:opacity-100"
-            style={{ borderRadius: "10px" }}
-            title="Retake"
-          >
-            <span className=" text-white text-sm bg-black/50 px-3 py-1 rounded-full">
-              🔄 Retake
-            </span>
-          </button>
-        </div>
       )}
 
       {/* ── CAMERA MODE: live preview ── */}
       {!image && mode === "capturing" && (
-        <div className="relative w-full h-full bg-black flex items-center justify-center">
+        <div className="absolute z-10 inset-0 w-full h-full bg-black flex items-center justify-center">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="video-mirror w-full h-full object-cover"
+            className="w-full h-full object-cover"
           />
 
           {/* Countdown overlay */}
@@ -157,48 +145,38 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
           )}
 
           {/* Camera controls */}
-          <div className="absolute bottom-2 left-0 right-0 flex justify-center z-20">
-            <button
-              onClick={capturePhoto}
-              disabled={countdown !== null}
-              className="hover:cursor-pointer text-sm w-8 h-8 rounded-full flex items-center justify-center bg-white"
-            >
-              📸
-            </button>
-            <button
-              onClick={startCountdown}
-              disabled={countdown !== null}
-              className="hover:cursor-pointer text-md w-8 h-8  rounded-full flex items-center justify-center bg-white"
-            >
-              ⏱
-            </button>
-            <button
-              onClick={closeCamera}
-              className="hover:cursor-pointer text-sm w-8 h-8  rounded-full flex items-center justify-center bg-white text-gray-500"
-            >
-              ✕
-            </button>
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-6 z-11">
+            {cameraOption.map(({label, action, disabled, style}, i) => (
+              <button
+                key={i}
+                onClick={action}
+                disabled={disabled(countdown)}
+                className={style}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
       {/* ── IDLE: action buttons ── */}
       {!image && mode === "idle" && (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-3">
+        <div className="w-full h-full flex flex-col items-center justify-center gap-2">
           {/* Slot number badge */}
-          <div className="text-2xl font-bold" style={{ color: "#c4497a" }}>
+          <div className="text-2xl font-bold text-pink-500">
             {index + 1}
           </div>
 
           <button
-            onClick={openCamera}
-            className="cursor-pointer text-sm w-24 h-8 bg-blue-100   rounded-full flex items-center justify-center"
+            onClick={openCamera} 
+            className="cursor-pointer text-sm w-24 h-6 bg-blue-200 rounded-full flex items-center justify-center"
           >
-            📷 Camera
+            📷Camera
           </button>
 
-          <label className="cursor-pointer text-sm w-24 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-            🖼 Upload
+          <label className="cursor-pointer text-sm w-24 h-6 bg-pink-200 rounded-full flex items-center justify-center">
+            🖼️Upload
             <input
               type="file"
               accept="image/*"
@@ -208,7 +186,18 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
           </label>
         </div>
       )}
-
+  {image && (
+        <button
+          onClick={() => { 
+            onCapture(index, ""); 
+            setMode("idle"); }}
+          className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 hover:bg-white/50 transition-opacity-300"
+        >
+          <span className="text-white bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm">
+            🔄 Retake
+          </span>
+        </button>
+      )}
       {/* Hidden canvas for frame capture */}
       <canvas ref={canvasRef} className="hidden" />
     </div>
