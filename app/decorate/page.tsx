@@ -2,41 +2,52 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const TEMPLATE = "/phototemplate.jpg";
+const TEMPLATE = "/phototemplate.png";
 
 /** Native pixel size of the template image */
-const TEMPLATE_W = 736;
-const TEMPLATE_H = 736;
+const TEMPLATE_W = 2160;
+const TEMPLATE_H = 3840;
 
 /**
  * White photo-box areas in the template, measured in native image pixels.
  * Each entry: { x (left), y (top), w (width), h (height) }
  * Measured by pixel-scanning the actual template file.
  */
-const TEMPLATE_BOXES: { x: number; y: number; w: number; h: number }[] = [
-  { x: 289, y: 94, w: 166, h: 140 }, // Box 1 – top
-  { x: 288, y: 264, w: 166, h: 140 }, // Box 2 – middle
-  { x: 286, y: 432, w: 168, h: 142 }, // Box 3 – bottom
+const TEMPLATE_BOXES = [
+  { x: 364, y: 381, w: 1434, h: 875 }, // Box 1 – top
+  { x: 363, y: 1452, w: 1433, h: 871 }, // Box 2 – middle
+  { x: 365, y: 2528, w: 1433, h: 869 }, // Box 3 – bottom
 ];
 
 //put emojis as stickers for now
 const STICKER_GROUPS = [
   {
-    label: "✨ Stars",
-    items: ["⭐", "🌟", "💫", "✨", "🌠", "⚡", "🌙", "☀️"],
+    label: "🐹 Animals",
+    items: ["🐹","🐰","🐭","🐱","🐶","🐻","🐨","🐻‍❄️","🐼","🦁","🐺","🦊"],
   },
   {
     label: "🌸 Nature",
-    items: ["🌸", "🌼", "🌺", "🍀", "🌈", "🦋", "🐝", "🍄"],
+    items: ["🌸", "🌼", "🌺", "🥕", "🌱", "🌻", "🐝", "🍄"],
   },
-  { label: "💖 Cute", items: ["🎀", "💖", "💗", "💝", "🧸", "🍭", "🍬", "🎠"] },
+  { label: "💖 Cute", 
+    items: ["🎀", "💖", "💗", "💝", "🎈", "🍭", "🎉", "🎁"] 
+  },
+  {
+    label: "🧁 Food",
+    items: ["🧁", "🍥", "🍒", "🧋", "🍵", "🎂", "🍨", "🍕"],
+  },
+  {
+    label: "✨ Stars",
+    items: ["⭐", "🌟", "💫", "✨", "⚡", "🌙", "🪐", "🌤️"],
+  },
+
   {
     label: "😊 Faces",
-    items: ["😊", "😍", "🥰", "😜", "🤩", "😎", "🥳", "👑"],
+    items: ["😊", "😍", "🥰", "😴", "🤩", "😎", "🥳", "😭"],
   },
   {
-    label: "🎉 Party",
-    items: ["🎉", "🎊", "🎈", "🎁", "🎆", "🪄", "🎪", "🎨"],
+    label: "🌈 Colors",
+    items: ["💙","🧡","❤️","🩷","💚","💛","🩵","💜","🤎","🤍","🩶","🖤"],
   },
 ];
 interface Sticker {
@@ -45,6 +56,7 @@ interface Sticker {
   xPct: number; // % of preview container width
   yPct: number; // % of preview container height
 }
+
 //crop img into canvas rect
 function drawCoverCrop(
   ctx: CanvasRenderingContext2D,
@@ -69,7 +81,7 @@ function drawCoverCrop(
   }
   ctx.drawImage(img, sx, sy, sw, sh, destX, destY, destW, destH);
 }
-//
+//Load an image into an HTMLImageElement (Promise-based)
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new window.Image();
@@ -78,6 +90,131 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = reject;
     img.src = src;
   });
+}
+interface StripProps {
+  photos: (string | null)[];
+  stickers: Sticker[];
+  interactive?: boolean; // true → stickers are draggable; false → read-only
+  onPointerDown?: (e: React.MouseEvent | React.TouchEvent, id: number) => void;
+  onRemove?: (id: number) => void;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+}
+function StripCanvas({
+  photos,
+  stickers,
+  interactive = false,
+  onPointerDown,
+  onRemove,
+  containerRef,
+}: StripProps) {
+  return (
+    <div
+      ref={containerRef as React.RefObject<HTMLDivElement>}
+      style={{
+        position: "relative",
+        width: "100%",
+        aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
+        userSelect: "none",
+        overflow: "hidden",
+        borderRadius: "8px",
+      }}
+    >
+      {/* Template image as background */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={TEMPLATE}
+        alt="strip template"
+        draggable={false}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          display: "block",
+        }}
+      />
+
+      {/* Photo boxes */}
+      {TEMPLATE_BOXES.map((box, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${(box.x / TEMPLATE_W) * 100}%`,
+            top: `${(box.y / TEMPLATE_H) * 100}%`,
+            width: `${(box.w / TEMPLATE_W) * 100}%`,
+            height: `${(box.h / TEMPLATE_H) * 100}%`,
+            overflow: "hidden",
+            borderRadius: "4px",
+          }}
+        >
+          {photos[i] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photos[i]!}
+              alt=""
+              draggable={false}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+                display: "block",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(255,255,255,0.4)",
+                color: "#aaa",
+              }}
+            >
+              {i + 1}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Stickers */}
+      {stickers.map((s) => (
+        <span
+          key={s.id}
+          className="sticker-placed"
+          style={{
+            left: `${s.xPct}%`,
+            top: `${s.yPct}%`,
+            transform: "translate(-50%, -50%)",
+            zIndex: 20,
+            pointerEvents: interactive ? "auto" : "none",
+            cursor: interactive ? "grab" : "default",
+          }}
+          onMouseDown={
+            interactive && onPointerDown
+              ? (e) => onPointerDown(e, s.id)
+              : undefined
+          }
+          onTouchStart={
+            interactive && onPointerDown
+              ? (e) => onPointerDown(e, s.id)
+              : undefined
+          }
+          onDoubleClick={
+            interactive && onRemove ? () => onRemove(s.id) : undefined
+          }
+          title={
+            interactive ? "Drag to move · Double-click to remove" : undefined
+          }
+        >
+          {s.emoji}
+        </span>
+      ))}
+    </div>
+  );
 }
 export default function DecoratePage() {
   const router = useRouter();
@@ -115,7 +252,7 @@ export default function DecoratePage() {
       {
         id: nextId.current,
         emoji,
-        xPct: 38 + Math.random() * 24,
+        xPct: 35 + Math.random() * 30,
         yPct: 35 + Math.random() * 30,
       },
     ]);
@@ -238,12 +375,11 @@ export default function DecoratePage() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-5 pt-5">
-      {/* Header */}
       <div>
-        <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
-          Guinea Pig Photobooth
-        </h1>
-      </div>
+          <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
+            Guinea Pig Photobooth
+          </h1>
+        </div>
       {/* Action buttons */}
       <div className="flex gap-3 mb-6 flex-wrap justify-center">
         <button
@@ -270,13 +406,16 @@ export default function DecoratePage() {
         </button>
       </div>
 
-      {/* Two-column layout */}
+      {/* Two-column layout: stickers sidebar and interactive strip */}
       <div className="flex flex-row gap-5 w-full max-w-4xl items-start justify-center">
         {/* Sticker sidebar */}
         <aside className="w-50 rounded-3xl p-4 shrink-0 flex flex-col justify-center gap-4 bg-white/50">
           <h2 className="text-xl text-center text-pink-500">Stickers 🌟</h2>
           <p className=" text-pink-500 text-sm text-center">
-            Tap to place<br/>Drag to move<br/> Double-tap to remove
+            Tap to place
+            <br />
+            Drag to move
+            <br /> Double-tap to remove
           </p>
           {STICKER_GROUPS.map((group) => (
             <div key={group.label}>
@@ -301,99 +440,38 @@ export default function DecoratePage() {
         {/* Interactive strip (main editing view) */}
         <div className="flex-1 flex justify-center">
           <div style={{ width: "100%", maxWidth: "420px" }}>
-            {/* The previewRef is attached to this wrapper for drag coordinate mapping */}
-            <div
-              ref={previewRef}
-              style={{
-                position: "relative",
-                width: "100%",
-                aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
-                userSelect: "none",
-              }}
-            >
-              {/* Template image */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={TEMPLATE}
-                alt="Photo strip template"
-                draggable={false}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  display: "block",
-                }}
-              />
-
-              {/* Photos in boxes */}
-              {TEMPLATE_BOXES.map((box, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    left: `${(box.x / TEMPLATE_W) * 100}%`,
-                    top: `${(box.y / TEMPLATE_H) * 100}%`,
-                    width: `${(box.w / TEMPLATE_W) * 100}%`,
-                    height: `${(box.h / TEMPLATE_H) * 100}%`,
-                    overflow: "hidden",
-                  }}
-                >
-                  {photos[i] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photos[i]!}
-                      alt={`Photo ${i + 1}`}
-                      draggable={false}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        objectPosition: "center",
-                        display: "block",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "rgba(255,255,255,0.5)",
-                      }}
-                    >
-                      Photo {i + 1}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Draggable stickers */}
-              {stickers.map((s) => (
-                <span
-                  key={s.id}
-                  className="sticker-placed"
-                  style={{
-                    left: `${s.xPct}%`,
-                    top: `${s.yPct}%`,
-                    fontSize: "clamp(20px, 5vw, 36px)",
-                    transform: "translate(-50%,-50%)",
-                    zIndex: 20,
-                  }}
-                  onMouseDown={(e) => onStickerPointerDown(e, s.id)}
-                  onTouchStart={(e) => onStickerPointerDown(e, s.id)}
-                  onDoubleClick={() => removeSticker(s.id)}
-                  title="Double-click to remove"
-                >
-                  {s.emoji}
-                </span>
-              ))}
-            </div>
+            <StripCanvas
+              photos={photos}
+              stickers={stickers}
+              interactive={true}
+              onPointerDown={onStickerPointerDown}
+              onRemove={removeSticker}
+              containerRef={previewRef}
+            />
           </div>
         </div>
       </div>
+
+      {/* Draggable stickers */}
+      {stickers.map((s) => (
+        <span
+          key={s.id}
+          className="sticker-placed"
+          style={{
+            left: `${s.xPct}%`,
+            top: `${s.yPct}%`,
+            fontSize: "clamp(20px, 5vw, 36px)",
+            transform: "translate(-50%,-50%)",
+            zIndex: 20,
+          }}
+          onMouseDown={(e) => onStickerPointerDown(e, s.id)}
+          onTouchStart={(e) => onStickerPointerDown(e, s.id)}
+          onDoubleClick={() => removeSticker(s.id)}
+          title="Double-click to remove"
+        >
+          {s.emoji}
+        </span>
+      ))}
 
       {/* ════ MODAL POPUP ════
           Full-screen overlay showing the strip enlarged.
@@ -429,102 +507,57 @@ export default function DecoratePage() {
               gap: "16px",
             }}
           >
-            {/* Read-only strip preview inside modal */}
-            <div
-              style={{
-                position: "relative",
-                width: "100%",
-                aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
-                userSelect: "none",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={TEMPLATE}
-                alt="template"
-                draggable={false}
+            {/* Read-only strip in modal */}
+            <StripCanvas
+              photos={photos}
+              stickers={stickers}
+              interactive={false}
+            />
+
+            {/* Read-only stickers */}
+            {stickers.map((s) => (
+              <span
+                key={s.id}
                 style={{
                   position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  display: "block",
+                  left: `${s.xPct}%`,
+                  top: `${s.yPct}%`,
+                  transform: "translate(-50%,-50%)",
+                  pointerEvents: "none",
+                  zIndex: 20,
                 }}
-              />
-              {TEMPLATE_BOXES.map((box, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    left: `${(box.x / TEMPLATE_W) * 100}%`,
-                    top: `${(box.y / TEMPLATE_H) * 100}%`,
-                    width: `${(box.w / TEMPLATE_W) * 100}%`,
-                    height: `${(box.h / TEMPLATE_H) * 100}%`,
-                    overflow: "hidden",
-                  }}
-                >
-                  {photos[i] && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photos[i]!}
-                      alt=""
-                      draggable={false}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        display: "block",
-                      }}
-                    />
-                  )}
-                </div>
-              ))}
-              {/* Read-only stickers */}
-              {stickers.map((s) => (
-                <span
-                  key={s.id}
-                  style={{
-                    position: "absolute",
-                    left: `${s.xPct}%`,
-                    top: `${s.yPct}%`,
-                    transform: "translate(-50%,-50%)",
-                    fontSize: "clamp(18px,4vw,30px)",
-                    pointerEvents: "none",
-                    zIndex: 20,
-                  }}
-                >
-                  {s.emoji}
-                </span>
-              ))}
-            </div>
+              >
+                {s.emoji}
+              </span>
+            ))}
+          </div>
 
-            {/* Modal buttons */}
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap",
-                justifyContent: "center",
+          {/* Modal buttons */}
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            <button
+              onClick={() => {
+                setModalOpen(false);
+                handleSave();
               }}
+              className="btn-pastel"
+              style={{ background: "#b5ead7", color: "#1a4a2a" }}
             >
-              <button
-                onClick={() => {
-                  setModalOpen(false);
-                  handleSave();
-                }}
-                className="btn-pastel"
-                style={{ background: "#b5ead7", color: "#1a4a2a" }}
-              >
-                {saving ? "⏳ Saving…" : "💾 Download"}
-              </button>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="btn-pastel"
-                style={{ background: "#ffc8dd", color: "#7a1a3a" }}
-              >
-                ✕ Close
-              </button>
-            </div>
+              {saving ? "⏳ Saving…" : "💾 Download"}
+            </button>
+            <button
+              onClick={() => setModalOpen(false)}
+              className="btn-pastel"
+              style={{ background: "#ffc8dd", color: "#7a1a3a" }}
+            >
+              ✕ Close
+            </button>
           </div>
         </div>
       )}
