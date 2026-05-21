@@ -393,7 +393,7 @@ export default function DecoratePage() {
       {/* Two-column layout: stickers sidebar and interactive strip */}
       <div className="flex flex-row gap-5 w-full min-h-0 items-start justify-center">
         {/* Sticker sidebar */}
-        <div className="w-56 xl:w-auto shrink-0 h-full rounded-2xl p-2 flex flex-col gap-2 bg-white/60 overflow-y-auto">
+        <div className="w-56 xl:w-auto shrink-0 h-full rounded-2xl p-2 flex flex-col gap-2 bg-pink-100 overflow-y-auto">
           <h2 className="text-xl text-center text-pink-500">Stickers 🌟</h2>
           <p className=" text-pink-500 text-sm text-center">
             Tap to place
