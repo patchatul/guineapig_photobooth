@@ -35,10 +35,21 @@ export default function Main() {
       return newPhotos;
     });
   }, []);
-  const decorate = () => {
-    // Store photos in sessionStorage so the /decorate route can read them
-    sessionStorage.setItem("wb_photos", JSON.stringify(photos));
-    router.push("/decorate");
+  const decorate = async () => {
+    try {
+      // Store photos in sessionStorage so the /decorate route can read them
+      const photosJson = JSON.stringify(photos);
+      const sizeBytes = new Blob([photosJson]).size;
+      console.log("Storing photos, size:", (sizeBytes / 1024).toFixed(2), "KB");
+      sessionStorage.setItem("wb_photos", photosJson);
+      console.log("Photos stored, navigating to /decorate...");
+      await router.push("/decorate");
+      console.log("Navigation completed");
+    } catch (err) {
+      console.error("Error during navigation:", err);
+      const sizeInMB = new Blob([JSON.stringify(photos)]).size / (1024 * 1024);
+      alert(`Storage Error: Photo data is ${sizeInMB.toFixed(2)}MB. Try capturing at lower resolution or fewer photos.`);
+    }
   };
 
   return (

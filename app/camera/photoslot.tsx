@@ -57,7 +57,8 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
     canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     triggerFlash();
-    const dataUrl = canvas.toDataURL("image/png");
+    // Use JPEG compression (85% quality) to reduce file size for sessionStorage
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     onCapture(index, dataUrl);
     setMode("processing");
     //close camera after capture
@@ -134,7 +135,7 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
             autoPlay
             playsInline
             muted
-            className="video-mirror w-full h-full object-cover"
+            className=" w-full h-full object-cover"
           />
 
           {/* Countdown overlay */}
