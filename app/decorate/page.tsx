@@ -107,20 +107,21 @@ function StripCanvas({
   containerRef,
 }: StripProps) {
   const localRef = useRef<HTMLDivElement | null>(null);
-  const refToUse = (containerRef as React.RefObject<HTMLDivElement | null>) ?? localRef;
+  const refToUse =
+    (containerRef as React.RefObject<HTMLDivElement | null>) ?? localRef;
   const [containerWidth, setContainerWidth] = useState(0);
 
   useEffect(() => {
-    const el = refToUse && 'current' in refToUse ? refToUse.current : null;
+    const el = refToUse && "current" in refToUse ? refToUse.current : null;
     if (!el) return;
     const update = () => setContainerWidth(el.getBoundingClientRect().width || 0);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    window.addEventListener('resize', update);
+    window.addEventListener("resize", update);
     return () => {
       ro.disconnect();
-      window.removeEventListener('resize', update);
+      window.removeEventListener("resize", update);
     };
   }, [refToUse]);
 
@@ -139,7 +140,6 @@ function StripCanvas({
         borderRadius: "8px",
       }}
     >
-     
       {/* Photo boxes behind the template */}
       {TEMPLATE_BOXES.map((box, i) => (
         <div
@@ -163,9 +163,7 @@ function StripCanvas({
               className="w-full h-full object-cover object-center block"
             />
           ) : (
-            <div
-            className="w-full h-full flex items-center justify-center bg-blue-200 text-pink-500 font-bold"
-            >
+            <div className="w-full h-full flex items-center justify-center bg-blue-200 text-pink-500 font-bold">
               {i + 1}
             </div>
           )}
@@ -173,7 +171,8 @@ function StripCanvas({
       ))}
       {/*Photo Template */}
       <img src={TEMPLATE} alt="" draggable={false}
-      className="absolute inset-0 w-full h-full block z-10 pointer-events-none" />
+        className="absolute inset-0 w-full h-full block z-10 pointer-events-none"
+      />
 
       {/* Stickers */}
       {stickers.map((s) => (
@@ -184,12 +183,12 @@ function StripCanvas({
             left: `${s.xPct}%`,
             top: `${s.yPct}%`,
             transform: "translate(-50%, -50%)",
-            fontSize:  `${fontPx}px`,
-            lineHeight: '1',
+            fontSize: `${fontPx}px`,
+            lineHeight: "1",
             zIndex: 20,
             pointerEvents: interactive ? "auto" : "none",
             cursor: interactive ? "grab" : "default",
-            userSelect:       "none",
+            userSelect: "none",
             // Prevent browser from treating emoji drag as text selection
             WebkitUserSelect: "none",
           }}
@@ -213,11 +212,15 @@ function StripCanvas({
     </div>
   );
 }
-{/* Main Photo Template Decorate Page*/}
+{
+  /* Main Photo Template Decorate Page*/
+}
 export default function DecoratePage() {
   const router = useRouter();
   // Ref to the preview div – used to map pointer events → % coordinates
   const previewRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
+  const previewWrapperRef = useRef<HTMLDivElement | null>(null);
 
   // ── Photos loaded from sessionStorage ────────────────────────────────────
   const [photos, setPhotos] = useState<(string | null)[]>([null, null, null]);
@@ -236,6 +239,30 @@ export default function DecoratePage() {
 
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // ── ADDED: detect Instagram/Facebook in-app browser ───────────────────────
+  // Instagram's WebView blocks navigator.share and restricts camera access.
+  // We show a banner so the user knows to open in Safari/Chrome for full features.
+  const [showIgBanner, setShowIgBanner] = useState(false);
+  useEffect(() => {
+    const ua = navigator.userAgent || "";
+    if (/Instagram|FBAN|FBAV/.test(ua)) setShowIgBanner(true);
+  }, []);
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current;
+    const previewWrapper = previewWrapperRef.current;
+    if (!sidebar || !previewWrapper) return;
+
+    const onScroll = () => {
+      const offset = sidebar.scrollTop;
+      previewWrapper.style.transform = offset ? `translateY(-${offset}px)` : "";
+    };
+
+    sidebar.addEventListener("scroll", onScroll, { passive: true });
+    return () => sidebar.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Add a sticker near the strip center with a random offset
   const addSticker = useCallback((emoji: string) => {
     nextId.current++;
@@ -256,7 +283,7 @@ export default function DecoratePage() {
   );
 
   {/* Drag stickers – mouse + touch, stores result as % of preview container
- so positions are resolution-independent and survive the canvas export.*/ }
+ so positions are resolution-independent and survive the canvas export.*/}
   const onStickerPointerDown = useCallback(
     (e: React.MouseEvent | React.TouchEvent, id: number) => {
       e.preventDefault();
@@ -344,6 +371,38 @@ export default function DecoratePage() {
       }
 
       // 4. Download
+      // Convert canvas to a Blob so we can pass it to the Web Share API.
+      // navigator.share({ files }) opens the native share sheet on:
+      //   • iOS Safari 15+  → "Save Image" saves directly to Photos app
+      //   • Android Chrome  → share to gallery, WhatsApp, Instagram, etc.
+      // Instagram WebView and desktop browsers don't support navigator.share
+      // with files, so we fall through to the classic <a download> link.
+      const dataUrl = canvas.toDataURL("image/png");
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], "photobooth.png", { type: "image/png" });
+
+      // Check if the browser supports sharing files before trying
+      const canShareFiles =
+        typeof navigator.share === "function" &&
+        typeof navigator.canShare === "function" &&
+        navigator.canShare({ files: [file] });
+
+      if (canShareFiles) {
+        try {
+          // Opens iOS/Android native share sheet
+          await navigator.share({
+            files: [file],
+            title: "Guinea Pig Photobooth",
+          });
+          // User either shared or dismissed — either way we're done
+          return;
+        } catch {
+          // User cancelled the sheet — no fallback download, just return quietly
+          return;
+        }
+      }
+
+      // Fallback: desktop download OR Instagram browser (user can long-press → Save)
       const link = document.createElement("a");
       link.download = "photobooth.png";
       link.href = canvas.toDataURL("image/png");
@@ -360,10 +419,27 @@ export default function DecoratePage() {
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center gap-5 pt-5">
       <div>
-          <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
-            Guinea Pig Photobooth
-          </h1>
+        <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
+          Guinea Pig Photobooth
+        </h1>
+      </div>
+      {/* ── ADDED: Instagram / Facebook in-app browser banner ─────────────────
+          Their WebView blocks camera access and the native share sheet.
+          Banner only appears when that UA is detected; user can dismiss it. */}
+      {showIgBanner && (
+        <div className="fixed inset-0 z-9999 bg-pink-100 flex items-center justify-center p-4">
+        
+          <span>
+            📲 Open in Safari or Chrome for camera &amp; saving to Photos
+          </span>
+          <button
+          className="bg-transparent text-pink-500 absolute top-2 right-2"
+            onClick={() => setShowIgBanner(false)}
+            >
+            ✕
+          </button>
         </div>
+      )}
       {/* Action buttons */}
       <div className="flex gap-3 mb-6 flex-wrap justify-center">
         <button
@@ -393,7 +469,10 @@ export default function DecoratePage() {
       {/* Two-column layout: stickers sidebar and interactive strip */}
       <div className="flex flex-row gap-5 w-full min-h-0 items-start justify-center">
         {/* Sticker sidebar */}
-        <div className="w-30 md:w-56 xl:w-auto shrink-0 h-full rounded-2xl p-2 flex flex-col bg-pink-100 overflow-y-auto">
+        <div
+          ref={sidebarRef}
+          className="w-30 md:w-56 xl:w-auto shrink-0 h-full rounded-xl p-2 flex flex-col bg-pink-100"
+        >
           <h2 className="text-xl text-center text-pink-500">Stickers 🌟</h2>
           <p className=" text-pink-500 text-sm text-center">
             Tap to place
@@ -418,12 +497,21 @@ export default function DecoratePage() {
               </div>
             </div>
           ))}
-          <p className=" text-xl text-pink-500 text-center mt-1">Made by Patchatul</p>
+          <p className=" text-xl text-pink-500 text-center mt-1">
+            Made by Patchatul
+          </p>
         </div>
 
         {/* Interactive strip (main editing view) */}
         <div className="flex-1 flex justify-center h-full shrink-0"
-        style={{ maxWidth: "420px", aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}` }}>
+            ref={previewWrapperRef}
+            
+            style={{
+              maxWidth: "420px",
+              aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
+              transition: "transform 0.1s ease-out",
+            }}
+          >
             <StripCanvas
               photos={photos}
               stickers={stickers}
@@ -432,7 +520,7 @@ export default function DecoratePage() {
               onRemove={removeSticker}
               containerRef={previewRef}
             />
-        </div>
+          </div>
       </div>
 
       {/* ════ preview POPUP ════
@@ -459,13 +547,21 @@ export default function DecoratePage() {
                 interactive={false}
               />
             </div>
-            <div className="mt-1 shrink-0 gap-6 flex flex-wrap justify-center" >
-              <button onClick={() => { setPreviewOpen(false); handleSave(); }}
-                className="btn-pastel" style={{ background: "#b5ead7", color: "#1a4a2a" }}>
+            <div className="mt-1 shrink-0 gap-6 flex flex-wrap justify-center">
+              <button
+                onClick={() => {
+                  setPreviewOpen(false);
+                  handleSave();
+                }}
+                className="btn-pastel" style={{ background: "#b5ead7", color: "#1a4a2a" }}
+              >
                 {saving ? "⏳ Saving…" : "💾 Download"}
               </button>
-              <button onClick={() => setPreviewOpen(false)}
-                className="btn-pastel" style={{ background: "#ffc8dd", color: "#7a1a3a" }}>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="btn-pastel"
+                style={{ background: "#ffc8dd", color: "#7a1a3a" }}
+              >
                 ✕ Close
               </button>
             </div>

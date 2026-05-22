@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import PhotoSlot from "./camera/photoslot";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -23,6 +23,10 @@ export default function Main() {
     undefined,
     undefined,
   ]);
+
+  useEffect(() => {
+    router.prefetch("/decorate");
+  }, [router]);
 
   const handleCapture = useCallback((index: number, dataUrl: string) => {
     setPhotos((prev) => {
