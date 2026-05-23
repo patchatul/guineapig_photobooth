@@ -114,7 +114,8 @@ function StripCanvas({
   useEffect(() => {
     const el = refToUse && "current" in refToUse ? refToUse.current : null;
     if (!el) return;
-    const update = () => setContainerWidth(el.getBoundingClientRect().width || 0);
+    const update = () =>
+      setContainerWidth(el.getBoundingClientRect().width || 0);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -370,43 +371,34 @@ export default function DecoratePage() {
         ctx.fillText(s.emoji, px, py);
       }
 
-      // 4. Download
-      // Convert canvas to a Blob so we can pass it to the Web Share API.
-      // navigator.share({ files }) opens the native share sheet on:
-      //   • iOS Safari 15+  → "Save Image" saves directly to Photos app
-      //   • Android Chrome  → share to gallery, WhatsApp, Instagram, etc.
-      // Instagram WebView and desktop browsers don't support navigator.share
-      // with files, so we fall through to the classic <a download> link.
+      // 4. Download / persist image and keep blob for sharing options
       const dataUrl = canvas.toDataURL("image/png");
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], "photobooth.png", { type: "image/png" });
 
-      // Check if the browser supports sharing files before trying
-      const canShareFiles =
+      // First trigger a download/save action so the image lands in the device downloads/gallery.
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "photobooth.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Then, if supported, open the native share sheet so users can share the saved image.
+      if (
         typeof navigator.share === "function" &&
         typeof navigator.canShare === "function" &&
-        navigator.canShare({ files: [file] });
-
-      if (canShareFiles) {
+        navigator.canShare({ files: [file] })
+      ) {
         try {
-          // Opens iOS/Android native share sheet
           await navigator.share({
             files: [file],
             title: "Guinea Pig Photobooth",
           });
-          // User either shared or dismissed — either way we're done
-          return;
         } catch {
-          // User cancelled the sheet — no fallback download, just return quietly
-          return;
+          // User canceled the share sheet or it failed. Download already happened.
         }
       }
-
-      // Fallback: desktop download OR Instagram browser (user can long-press → Save)
-      const link = document.createElement("a");
-      link.download = "photobooth.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
     } catch (err) {
       console.error(err);
       alert("Could not save – try right-clicking and saving manually 🌸");
@@ -415,7 +407,6 @@ export default function DecoratePage() {
     }
   }, [photos, stickers]);
 
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center gap-5 pt-5">
       <div>
@@ -428,14 +419,13 @@ export default function DecoratePage() {
           Banner only appears when that UA is detected; user can dismiss it. */}
       {showIgBanner && (
         <div className="fixed inset-0 z-9999 bg-pink-100 flex items-center justify-center p-4">
-        
           <span>
             📲 Open in Safari or Chrome for camera &amp; saving to Photos
           </span>
           <button
-          className="bg-transparent text-pink-500 absolute top-2 right-2"
+            className="bg-transparent text-pink-500 absolute top-2 right-2"
             onClick={() => setShowIgBanner(false)}
-            >
+          >
             ✕
           </button>
         </div>
@@ -503,24 +493,24 @@ export default function DecoratePage() {
         </div>
 
         {/* Interactive strip (main editing view) */}
-        <div className="flex-1 flex justify-center h-full shrink-0"
-            ref={previewWrapperRef}
-            
-            style={{
-              maxWidth: "420px",
-              aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
-              transition: "transform 0.1s ease-out",
-            }}
-          >
-            <StripCanvas
-              photos={photos}
-              stickers={stickers}
-              interactive={true}
-              onPointerDown={onStickerPointerDown}
-              onRemove={removeSticker}
-              containerRef={previewRef}
-            />
-          </div>
+        <div
+          className="flex-1 flex justify-center h-full shrink-0"
+          ref={previewWrapperRef}
+          style={{
+            maxWidth: "420px",
+            aspectRatio: `${TEMPLATE_W} / ${TEMPLATE_H}`,
+            transition: "transform 0.1s ease-out",
+          }}
+        >
+          <StripCanvas
+            photos={photos}
+            stickers={stickers}
+            interactive={true}
+            onPointerDown={onStickerPointerDown}
+            onRemove={removeSticker}
+            containerRef={previewRef}
+          />
+        </div>
       </div>
 
       {/* ════ preview POPUP ════
@@ -553,7 +543,8 @@ export default function DecoratePage() {
                   setPreviewOpen(false);
                   handleSave();
                 }}
-                className="btn-pastel" style={{ background: "#b5ead7", color: "#1a4a2a" }}
+                className="btn-pastel"
+                style={{ background: "#b5ead7", color: "#1a4a2a" }}
               >
                 {saving ? "⏳ Saving…" : "💾 Download"}
               </button>

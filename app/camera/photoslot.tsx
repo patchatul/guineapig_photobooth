@@ -57,8 +57,8 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
     canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     triggerFlash();
-    // Use JPEG compression (85% quality) to reduce file size for sessionStorage
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    // Use JPEG compression (50% quality) to reduce file size for sessionStorage
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
     onCapture(index, dataUrl);
     setMode("processing");
     //close camera after capture

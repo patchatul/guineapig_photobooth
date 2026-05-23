@@ -35,6 +35,7 @@ export default function Main() {
       return newPhotos;
     });
   }, []);
+  
   const decorate = async () => {
     try {
       // Store photos in sessionStorage so the /decorate route can read them
