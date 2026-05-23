@@ -226,6 +226,40 @@ export default function DecoratePage() {
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const previewWrapperRef = useRef<HTMLDivElement | null>(null);
 
+  // Detect common in-app browsers (Instagram, Facebook, Messenger)
+  const isInAppBrowser = /Instagram|FBAN|FBAV|Messenger/i.test(
+    navigator.userAgent || "",
+  );
+
+  const openInChrome = useCallback(() => {
+    const ua = navigator.userAgent || "";
+    const url = location.href;
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    try {
+      if (isAndroid) {
+        const hostPart = `${location.hostname}${location.pathname}${location.search}`;
+        const intentUrl = `intent://${hostPart}#Intent;scheme=https;package=com.android.chrome;end`;
+        window.location.href = intentUrl;
+      } else if (isIOS) {
+        const chromeUrl = `googlechrome://navigate?url=${encodeURIComponent(url)}`;
+        window.location.href = chromeUrl;
+      } else {
+        window.open(url, "_blank");
+      }
+    } catch (err) {
+      window.open(url, "_blank");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isInAppBrowser) return;
+    const t = setTimeout(() => {
+      openInChrome();
+    }, 600);
+    return () => clearTimeout(t);
+  }, [isInAppBrowser, openInChrome]);
+
   // ── Photos loaded from sessionStorage ────────────────────────────────────
   const [photos, setPhotos] = useState<(string | null)[]>([null, null, null]);
   useEffect(() => {
@@ -255,13 +289,6 @@ export default function DecoratePage() {
 
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-
-  // ── ADDED: detect Instagram/Facebook in-app browser ───────────────────────
-  // Instagram's WebView blocks navigator.share and restricts camera access.
-  // We show a banner so the user knows to open in Safari/Chrome for full features.
-  const [showIgBanner, setShowIgBanner] = useState(() =>
-    /Instagram|FBAN|FBAV/.test(navigator.userAgent || ""),
-  );
 
   useEffect(() => {
     const sidebar = sidebarRef.current;
@@ -423,28 +450,34 @@ export default function DecoratePage() {
   }, [photos, stickers]);
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center gap-5 pt-5">
-      <div>
+    <div className="min-h-screen w-full flex flex-col items-center px-4 py-6">
+      <div className="mb-4 text-center">
         <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
           Guinea Pig Photobooth
         </h1>
-      </div>
-      {/* ── ADDED: Instagram / Facebook in-app browser banner ─────────────────
-          Their WebView blocks camera access and the native share sheet.
-          Banner only appears when that UA is detected; user can dismiss it. */}
-      {showIgBanner && (
-        <div className="fixed inset-0 z-9999 bg-pink-100 flex items-center justify-center p-4">
-          <span>
-            📲 Open in Safari or Chrome for camera &amp; saving to Photos
-          </span>
-          <button
-            className="bg-transparent text-pink-500 absolute top-2 right-2"
-            onClick={() => setShowIgBanner(false)}
-          >
-            ✕
-          </button>
+        <p className="text-sm text-gray-500">
+          open in Google Chrome or Laptop for best experience
+        </p>
+        <div className="flex justify-center">
+        {isInAppBrowser && (
+          <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded">
+            <div>
+              Looks like you're inside an in-app browser. For best experience, please open this page in Google Chrome or on a laptop.
+            </div>
+            <div className="mt-2 flex justify-center">
+              <button
+                onClick={openInChrome}
+                className="btn-pastel"
+                style={{ background: "#bde0fe" }}
+              >
+                Open in Chrome
+              </button>
+            </div>
+          </div>
+        )}
         </div>
-      )}
+      </div>
+
       {/* Action buttons */}
       <div className="flex gap-3 mb-6 flex-wrap justify-center">
         <button

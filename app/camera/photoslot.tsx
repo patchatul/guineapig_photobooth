@@ -192,7 +192,7 @@ export default function PhotoSlot({ index, image, onCapture }: PhotoSlotProps) {
           onClick={() => { 
             onCapture(index, ""); 
             setMode("idle"); }}
-          className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 hover:bg-white/50 transition-opacity-300"
+          className="absolute inset-0 z-10 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 hover:bg-white/30 transition-opacity-300"
         >
           <span className="text-white bg-black bg-opacity-50 px-3 py-1 rounded-full text-sm">
             🔄 Retake

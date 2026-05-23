@@ -87,6 +87,8 @@ export default function Main() {
         <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
           Guinea Pig Photobooth
         </h1>
+        
+        <p className="text-sm text-gray-500">open in Google Chrome or Laptop for best experience</p>
       </div>
 
       <div className="flex-1 w-full max-w-120 flex items-center justify-center">
