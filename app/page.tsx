@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import PhotoSlot from "./camera/photoslot";
+import { dataUrlToBlob, savePhotoBlobs } from "./lib/photosDb";
 // ─────────────────────────────────────────────────────────────────────────────
 // TEMPLATE CONFIG  (must match decorate/page.tsx)
 // All box coords in native image pixels (2160 × 3840)
@@ -15,6 +16,34 @@ const TEMPLATE_BOXES = [
   { x: 340, y: 1450, w: 1500, h: 880 }, // Box 2 – middle
   { x: 340, y: 2525, w: 1500, h: 880 }, // Box 3 – bottom
 ];
+
+async function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function compressPhotoDataUrl(rawDataUrl: string) {
+  const img = await loadImage(rawDataUrl);
+  const maxDimension = 1400;
+  const width = img.naturalWidth;
+  const height = img.naturalHeight;
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+  if (scale >= 1) {
+    return rawDataUrl;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return rawDataUrl;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.75);
+}
 export default function Main() {
   const router = useRouter();
 
@@ -28,28 +57,27 @@ export default function Main() {
     router.prefetch("/decorate");
   }, [router]);
 
-  const handleCapture = useCallback((index: number, dataUrl: string) => {
+  const handleCapture = useCallback(async (index: number, dataUrl: string) => {
+    const compressed = await compressPhotoDataUrl(dataUrl);
     setPhotos((prev) => {
       const newPhotos = [...prev];
-      newPhotos[index] = dataUrl;
+      newPhotos[index] = compressed;
       return newPhotos;
     });
   }, []);
-  
+
   const decorate = async () => {
     try {
-      // Store photos in sessionStorage so the /decorate route can read them
-      const photosJson = JSON.stringify(photos);
-      const sizeBytes = new Blob([photosJson]).size;
-      console.log("Storing photos, size:", (sizeBytes / 1024).toFixed(2), "KB");
-      sessionStorage.setItem("wb_photos", photosJson);
-      console.log("Photos stored, navigating to /decorate...");
+      const blobs = await Promise.all(
+        photos.map(async (photo) => (photo ? dataUrlToBlob(photo) : null)),
+      );
+      await savePhotoBlobs(blobs);
       await router.push("/decorate");
-      console.log("Navigation completed");
     } catch (err) {
       console.error("Error during navigation:", err);
-      const sizeInMB = new Blob([JSON.stringify(photos)]).size / (1024 * 1024);
-      alert(`Storage Error: Photo data is ${sizeInMB.toFixed(2)}MB. Try capturing at lower resolution or fewer photos.`);
+      alert(
+        "Storage Error: Photo data is ${sizeInMB.toFixed(2)}MB. Try capturing at lower resolution",
+      );
     }
   };
 
@@ -71,42 +99,43 @@ export default function Main() {
             minHeight: 0,
           }}
         >
-      
-
-        {TEMPLATE_BOXES.map((box, i) => (
-          <div
-            key={i}
+          {TEMPLATE_BOXES.map((box, i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: `${(box.x / TEMPLATE_W) * 100}%`,
+                top: `${(box.y / TEMPLATE_H) * 100}%`,
+                width: `${(box.w / TEMPLATE_W) * 100}%`,
+                height: `${(box.h / TEMPLATE_H) * 100}%`,
+                overflow: "hidden",
+                /* z-index 0: sits below the template overlay (z-index 1) */
+                zIndex: 0,
+              }}
+            >
+              <PhotoSlot
+                index={i}
+                image={photos[i]}
+                onCapture={handleCapture}
+              />
+            </div>
+          ))}
+          <img
+            src={TEMPLATE_SRC}
+            alt=""
+            draggable={false}
             style={{
               position: "absolute",
-              left:   `${(box.x / TEMPLATE_W) * 100}%`,
-              top:    `${(box.y / TEMPLATE_H) * 100}%`,
-              width:  `${(box.w / TEMPLATE_W) * 100}%`,
-              height: `${(box.h / TEMPLATE_H) * 100}%`,
-              overflow:     "hidden",
-              /* z-index 0: sits below the template overlay (z-index 1) */
-              zIndex: 0,
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              display: "block",
+              /* Sit on top of photos so the frame/decorations overlay them */
+              zIndex: 1,
+              /* Allow mouse/touch events to fall through to photo slots below */
+              pointerEvents: "none",
             }}
-          >
-            <PhotoSlot index={i} image={photos[i]} onCapture={handleCapture} />
-          </div>
-        ))}
-        <img
-          src={TEMPLATE_SRC}
-          alt=""
-          draggable={false}
-          style={{
-            position:      "absolute",
-            inset:         0,
-            width:         "100%",
-            height:        "100%",
-            display:       "block",
-            /* Sit on top of photos so the frame/decorations overlay them */
-            zIndex:        1,
-            /* Allow mouse/touch events to fall through to photo slots below */
-            pointerEvents: "none",
-          }}
-        />
-        
+          />
         </div>
       </div>
       <div className="mt-4 w-full max-w-120 relative z-10 flex justify-center">
@@ -114,7 +143,8 @@ export default function Main() {
           onClick={decorate}
           className="btn-pastel float-anim text-lg px-8 py-3 text-pink-500"
           style={{
-            background: "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
+            background:
+              "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
             fontWeight: "bold",
           }}
         >

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { loadPhotoBlobs } from "../lib/photosDb";
 
 const TEMPLATE = "/phototemplate.png";
 
@@ -171,7 +172,9 @@ function StripCanvas({
         </div>
       ))}
       {/*Photo Template */}
-      <img src={TEMPLATE} alt="" draggable={false}
+      <img
+        src={TEMPLATE}
+        alt="" draggable={false}
         className="absolute inset-0 w-full h-full block z-10 pointer-events-none"
       />
 
@@ -226,14 +229,26 @@ export default function DecoratePage() {
   // ── Photos loaded from sessionStorage ────────────────────────────────────
   const [photos, setPhotos] = useState<(string | null)[]>([null, null, null]);
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("wb_photos");
-      if (raw) {
-        const p: (string | null)[] = JSON.parse(raw);
-        // Support both 3-slot and legacy 4-slot arrays
-        setPhotos([p[0] ?? null, p[1] ?? null, p[2] ?? null]);
+    let urls: (string | null)[] = [null, null, null];
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const blobs = await loadPhotoBlobs();
+        urls = blobs.map((blob) => (blob ? URL.createObjectURL(blob) : null));
+        if (!cancelled) {
+          setPhotos(urls);
+        }
+      } catch (err) {
+        console.error("Failed to load photos:", err);
       }
-    } catch {}
+    };
+    load();
+    return () => {
+      cancelled = true;
+      urls.forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
   }, []);
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const nextId = useRef(0);
@@ -244,11 +259,9 @@ export default function DecoratePage() {
   // ── ADDED: detect Instagram/Facebook in-app browser ───────────────────────
   // Instagram's WebView blocks navigator.share and restricts camera access.
   // We show a banner so the user knows to open in Safari/Chrome for full features.
-  const [showIgBanner, setShowIgBanner] = useState(false);
-  useEffect(() => {
-    const ua = navigator.userAgent || "";
-    if (/Instagram|FBAN|FBAV/.test(ua)) setShowIgBanner(true);
-  }, []);
+  const [showIgBanner, setShowIgBanner] = useState(() =>
+    /Instagram|FBAN|FBAV/.test(navigator.userAgent || ""),
+  );
 
   useEffect(() => {
     const sidebar = sidebarRef.current;
@@ -283,8 +296,10 @@ export default function DecoratePage() {
     [],
   );
 
-  {/* Drag stickers – mouse + touch, stores result as % of preview container
- so positions are resolution-independent and survive the canvas export.*/}
+  {
+    /* Drag stickers – mouse + touch, stores result as % of preview container
+ so positions are resolution-independent and survive the canvas export.*/
+  }
   const onStickerPointerDown = useCallback(
     (e: React.MouseEvent | React.TouchEvent, id: number) => {
       e.preventDefault();
@@ -445,7 +460,7 @@ export default function DecoratePage() {
           className="btn-pastel "
           style={{ background: "#b5ead7", color: "#1a4a2a" }}
         >
-          {saving ? "⏳ Saving…" : "💾 Save"}
+          {saving ? "⏳ Saving…" : "💾 Download"}
         </button>
         <button
           onClick={() => router.push("/")}
