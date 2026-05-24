@@ -122,9 +122,6 @@ export default function Main() {
           Guinea Pig Photobooth
         </h1>
 
-        <p className="text-sm text-gray-500">
-          open in Google Chrome or Laptop for best experience
-        </p>
         <div className="flex justify-center">
           {isInAppBrowser && (
             <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded">
@@ -135,9 +132,13 @@ export default function Main() {
               <div className="mt-2 flex justify-center">
                 <button
                   onClick={openInChrome}
-                  className="btn-pastel"
-                  style={{ background: "#bde0fe" }}
-                >
+                  className="btn-pastel float-anim text-lg px-8 py-3 text-pink-500"
+          style={{
+            background:
+              "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
+            fontWeight: "bold",
+          }}
+        >
                   Open in Chrome
                 </button>
               </div>

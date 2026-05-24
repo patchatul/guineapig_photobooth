@@ -22,6 +22,18 @@ const TEMPLATE_BOXES = [
 //put emojis as stickers for now
 const STICKER_GROUPS = [
   {
+    label: "🎯 stickers",
+    items: [
+      "/lisa.png",
+      "/lunar.png",
+      "/roger.png",
+      "/rain.png",
+      "/rainny.png",
+      "/ben.png",
+      "/benjamin.png",
+    ],
+  },
+  {
     label: "🌸 Nature",
     items: ["🌸",  "🌺", "🪷", "🌼", "🌱", "🌻", "🌹", "🍀","💐", "🥕","🌶️", "🍄"],
   },
@@ -34,15 +46,16 @@ const STICKER_GROUPS = [
   },
   {
     label: "🐹 Animals",
-    items: ["🐹", "🐱", "🐶", "🐨", "🐼", "🦊", "🐤", "🐢", "🐟"],
+    items: ["🐹", "🐱", "🐶", "🐼", "🦊", "🐤", "🐢", "🐟"],
   },
   {
     label: "😊 Faces",
-    items: ["😊", "😍", "🥰", "😴", "🤩", "😎", "🥳", "😭"]
+    items: ["😊", "😍", "🥰", "😴", "🤩", "😎", "🥳", "😭"],
   },
   {
     label: "✌️ Poses",
-    items: ["✌", "👉", "💪", "👓", "🎓","💤","💡", "💭", "💢", "🤖", "👽", "😈"]
+    items: ["✌", "👉", "💪", "👓", "🎓", "💤", "💡", "💭", "❓", "👑", "👽", "😈",
+    ],
   },
   {
     label: "🌈 Colors",
@@ -90,6 +103,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.src = src;
   });
 }
+const isStickerImage = (value: string) => value.toLowerCase().endsWith(".png");
 interface StripProps {
   photos: (string | null)[];
   stickers: Sticker[];
@@ -209,7 +223,16 @@ function StripCanvas({
             interactive && onRemove ? () => onRemove(s.id) : undefined
           }
         >
-          {s.emoji}
+          {isStickerImage(s.emoji) ? (
+            <img
+              src={s.emoji}
+              alt="sticker"
+              draggable={false}
+              style={{ width: fontPx, height: fontPx, display: "block" }}
+            />
+          ) : (
+            s.emoji
+          )}
         </span>
       ))}
     </div>
@@ -369,13 +392,25 @@ export default function DecoratePage() {
 
       // 3. Sticker emojis at native scale
       const stickerPics = Math.round(TEMPLATE_W * 0.06); // ~6% of template width
-      ctx.font = `${stickerPics}px serif`;
       ctx.textBaseline = "middle";
       ctx.textAlign = "center";
+      const stickerImageSize = Math.round(TEMPLATE_W * 0.08);
+      ctx.font = `${stickerPics}px serif`;
       for (const s of stickers) {
         const px = (s.xPct / 100) * TEMPLATE_W;
         const py = (s.yPct / 100) * TEMPLATE_H;
-        ctx.fillText(s.emoji, px, py);
+        if (isStickerImage(s.emoji)) {
+          const img = await loadImage(s.emoji);
+          ctx.drawImage(
+            img,
+            px - stickerImageSize / 2,
+            py - stickerImageSize / 2,
+            stickerImageSize,
+            stickerImageSize,
+          );
+        } else {
+          ctx.fillText(s.emoji, px, py);
+        }
       }
 
       // 4. Download / persist image and keep blob for sharing options
@@ -466,14 +501,23 @@ export default function DecoratePage() {
             <div key={group.label}>
               <p className=" text-xs text-gray-400 mb-2">{group.label}</p>
               <div className="flex flex-wrap gap-1 justify-center">
-                {group.items.map((emoji) => (
+                {group.items.map((sticker) => (
                   <button
-                    key={emoji}
+                    key={sticker}
                     className="sticker-btn"
-                    title={`add ${emoji}`}
-                    onClick={() => addSticker(emoji)}
+                    title={`add ${sticker}`}
+                    onClick={() => addSticker(sticker)}
                   >
-                    {emoji}
+                    {isStickerImage(sticker) ? (
+                      <img
+                        src={sticker}
+                        alt="sticker"
+                        className="h-8 w-8 object-contain"
+                        draggable={false}
+                      />
+                    ) : (
+                      sticker
+                    )}
                   </button>
                 ))}
               </div>
