@@ -22,32 +22,31 @@ const TEMPLATE_BOXES = [
 //put emojis as stickers for now
 const STICKER_GROUPS = [
   {
-    label: "🐹 Animals",
-    items: ["🐹","🐰","🐭","🐱","🐶","🐻","🐨","🐻‍❄️","🐼","🦁","🐺","🦊"],
-  },
-  {
     label: "🌸 Nature",
-    items: ["🌸", "🌼", "🌺", "🥕", "🌱", "🌻", "🐝", "🍄"],
+    items: ["🌸",  "🌺", "🪷", "🌼", "🌱", "🌻", "🌹", "🍀","💐", "🥕","🌶️", "🍄"],
   },
   { label: "💖 Cute", 
-    items: ["🎀", "💖", "💗", "💝", "🎈", "🍭", "🎉", "🎁"] 
+    items: ["🎀", "💖", "⭐", "✨", "🎈", "🍭", "🎉", "🎁"] 
   },
   {
     label: "🧁 Food",
     items: ["🧁", "🍥", "🍒", "🧋", "🍵", "🎂", "🍨", "🍕"],
   },
   {
-    label: "✨ Stars",
-    items: ["⭐", "🌟", "💫", "✨", "⚡", "🌙", "🪐", "🌤️"],
+    label: "🐹 Animals",
+    items: ["🐹", "🐱", "🐶", "🐨", "🐼", "🦊", "🐤", "🐢", "🐟"],
   },
-
   {
     label: "😊 Faces",
-    items: ["😊", "😍", "🥰", "😴", "🤩", "😎", "🥳", "😭"],
+    items: ["😊", "😍", "🥰", "😴", "🤩", "😎", "🥳", "😭"]
+  },
+  {
+    label: "✌️ Poses",
+    items: ["✌", "👉", "💪", "👓", "🎓","💤","💡", "💭", "💢", "🤖", "👽", "😈"]
   },
   {
     label: "🌈 Colors",
-    items: ["💙","🧡","❤️","🩷","💚","💛","🩵","💜","🤎","🤍","🩶","🖤"],
+    items: ["💙", "🧡", "❤️", "🩷", "💚", "💛", "🩵", "💜", "🤎", "🤍", "🩶", "🖤"],
   },
 ];
 interface Sticker {
@@ -225,40 +224,6 @@ export default function DecoratePage() {
   const previewRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const previewWrapperRef = useRef<HTMLDivElement | null>(null);
-
-  // Detect common in-app browsers (Instagram, Facebook, Messenger)
-  const isInAppBrowser = /Instagram|FBAN|FBAV|Messenger/i.test(
-    navigator.userAgent || "",
-  );
-
-  const openInChrome = useCallback(() => {
-    const ua = navigator.userAgent || "";
-    const url = location.href;
-    const isAndroid = /Android/i.test(ua);
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
-    try {
-      if (isAndroid) {
-        const hostPart = `${location.hostname}${location.pathname}${location.search}`;
-        const intentUrl = `intent://${hostPart}#Intent;scheme=https;package=com.android.chrome;end`;
-        window.location.href = intentUrl;
-      } else if (isIOS) {
-        const chromeUrl = `googlechrome://navigate?url=${encodeURIComponent(url)}`;
-        window.location.href = chromeUrl;
-      } else {
-        window.open(url, "_blank");
-      }
-    } catch (err) {
-      window.open(url, "_blank");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isInAppBrowser) return;
-    const t = setTimeout(() => {
-      openInChrome();
-    }, 600);
-    return () => clearTimeout(t);
-  }, [isInAppBrowser, openInChrome]);
 
   // ── Photos loaded from sessionStorage ────────────────────────────────────
   const [photos, setPhotos] = useState<(string | null)[]>([null, null, null]);
@@ -455,27 +420,6 @@ export default function DecoratePage() {
         <h1 className="sm:text-5xl text-3xl font-bold text-pink-500">
           Guinea Pig Photobooth
         </h1>
-        <p className="text-sm text-gray-500">
-          open in Google Chrome or Laptop for best experience
-        </p>
-        <div className="flex justify-center">
-        {isInAppBrowser && (
-          <div className="mt-2 p-2 bg-yellow-100 text-yellow-800 rounded">
-            <div>
-              Looks like you're inside an in-app browser. For best experience, please open this page in Google Chrome or on a laptop.
-            </div>
-            <div className="mt-2 flex justify-center">
-              <button
-                onClick={openInChrome}
-                className="btn-pastel"
-                style={{ background: "#bde0fe" }}
-              >
-                Open in Chrome
-              </button>
-            </div>
-          </div>
-        )}
-        </div>
       </div>
 
       {/* Action buttons */}
