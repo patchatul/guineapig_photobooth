@@ -22,11 +22,14 @@ const TEMPLATE_BOXES = [
 //put emojis as stickers for now
 const STICKER_GROUPS = [
   {
-    label: "🎯 stickers",
+    label: "🐭 pat's pets",
     items: [
       "/lisa.png",
-      "/lunar.png",
       "/roger.png",
+      "/lunar.png",
+      "/lis.png",
+      "/ger.png",
+      "/na.png",
       "/rain.png",
       "/rainny.png",
       "/ben.png",

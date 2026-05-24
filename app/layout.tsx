@@ -18,7 +18,21 @@ const roboto = Roboto({
 
 export const metadata: Metadata = {
   title: "Guinea Pig Photobooth",
-  description: "Guinea Pig Photobooth",
+  description: "Create cute guineapig photobooth strips with stickers",
+  metadataBase: new URL("https://example.com"),
+  applicationName: "Guinea Pig Photobooth",
+  authors: [{ name: "Patcharalak Tulyakul" }],
+  creator: "Patcharalak Tulyakul",
+  keywords: [
+    "guinea pig",
+    "photobooth",
+    "stickers",
+  ],
+  icons: {
+    icon: "/lunar.png",
+    shortcut: "/lunar.png",
+    apple: "/lunar.png",
+  },
 };
 
 export default function RootLayout({
