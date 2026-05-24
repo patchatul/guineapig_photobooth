@@ -92,6 +92,16 @@ export default function Main() {
   }, [isInAppBrowser, openInChrome]);
 
   const handleCapture = useCallback(async (index: number, dataUrl: string) => {
+    // If empty dataUrl is passed, clear the slot so retake returns to camera/upload
+    if (!dataUrl) {
+      setPhotos((prev) => {
+        const newPhotos = [...prev];
+        newPhotos[index] = undefined;
+        return newPhotos;
+      });
+      return;
+    }
+
     const compressed = await compressPhotoDataUrl(dataUrl);
     setPhotos((prev) => {
       const newPhotos = [...prev];
@@ -133,12 +143,12 @@ export default function Main() {
                 <button
                   onClick={openInChrome}
                   className="btn-pastel float-anim text-lg px-8 py-3 text-pink-500"
-          style={{
-            background:
-              "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
-            fontWeight: "bold",
-          }}
-        >
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #ffc8dd, #fef9c3, #b5ead7, #bde0fe)",
+                    fontWeight: "bold",
+                  }}
+                >
                   Open in Chrome
                 </button>
               </div>
