@@ -25,7 +25,7 @@ Capture images from your camera or upload photos, then decorate them with sticke
 
 ## Screenshot
 
-![Guinea Pig Photobooth screenshot](/screenshot.png)
+![Guinea Pig Photobooth screenshot](/public/screenshot.png)
 
 ## Project Structure
 
@@ -42,19 +42,7 @@ Capture images from your camera or upload photos, then decorate them with sticke
         ├── layout.tsx
         ├── page.tsx
     └── 📁public
-        ├── ben.png
-        ├── benjamin.png
-        ├── ger.png
-        ├── lis.png
-        ├── lisa.png
-        ├── lunar.png
-        ├── na.png
         ├── phototemplate.png
-        ├── phototemplate2.png
-        ├── rain.png
-        ├── rainny.png
-        ├── roger.png
-        ├── screenshot.png
     ├── .gitignore
     ├── AGENTS.md
     ├── CLAUDE.md
@@ -72,7 +60,3 @@ Capture images from your camera or upload photos, then decorate them with sticke
 
 - The main page prompts mobile users to open the app in Chrome for better compatibility.
 - Sticker assets include both emoji and PNG images stored in `public/`.
-
-```
-
-```
